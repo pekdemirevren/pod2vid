@@ -20,8 +20,17 @@ class CloudInferenceClient:
     
     def __init__(self):
         self.hf_api_url = "https://api-inference.huggingface.co/models/vinthony/wav2lip-hq"
-        self.hf_token = st.secrets.get("HF_TOKEN", None)
-        self.replicate_token = st.secrets.get("REPLICATE_API_TOKEN", None)
+        
+        # Safe secrets access
+        try:
+            import streamlit as st
+            self.hf_token = st.secrets.get("HF_TOKEN", None)
+            self.replicate_token = st.secrets.get("REPLICATE_API_TOKEN", None)
+        except Exception:
+            # Fallback to environment variables or None
+            import os
+            self.hf_token = os.getenv("HF_TOKEN", None)
+            self.replicate_token = os.getenv("REPLICATE_API_TOKEN", None)
         
     def _encode_image(self, image_bytes: bytes) -> str:
         """Convert image to base64 for API"""

@@ -10,6 +10,11 @@ venv/
 *.mp4
 temp_*
 outputs/
+
+# Secrets and config
+.streamlit/secrets.toml
+usage_stats.json
+video_cache/
 split_speakers/
 __pycache__/
 *.pyc
