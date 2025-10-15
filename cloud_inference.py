@@ -151,6 +151,11 @@ class CloudInferenceClient:
                     audio_tmp.write(audio)
                     audio_tmp.flush()
                     
+                    # Create output path
+                    import time
+                    output_path = f"outputs/local_result_{int(time.time())}.mp4"
+                    Path("outputs").mkdir(exist_ok=True)
+                    
                     # Create file-like objects for the function
                     class FileWrapper:
                         def __init__(self, path):
@@ -161,14 +166,18 @@ class CloudInferenceClient:
                     
                     success, result = simple_wav2lip_generation(
                         FileWrapper(face_tmp.name),
-                        FileWrapper(audio_tmp.name)
+                        FileWrapper(audio_tmp.name),
+                        output_path
                     )
                     
-                    # Cleanup
+                    # Cleanup temp files
                     Path(face_tmp.name).unlink(missing_ok=True)
                     Path(audio_tmp.name).unlink(missing_ok=True)
                     
-                    return success, result
+                    if success and Path(output_path).exists():
+                        return True, output_path
+                    else:
+                        return False, f"Local generation failed: {result}"
                     
         except Exception as e:
             return False, f"Local fallback failed: {str(e)}"
