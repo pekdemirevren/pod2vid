@@ -26,6 +26,18 @@ except ImportError:
     WAV2LIP_AVAILABLE = False
     wav2lip_status = "Wav2Lip module not available"
 
+# Import simple Wav2Lip (more reliable)
+try:
+    from simple_wav2lip import (
+        check_simple_wav2lip,
+        streamlit_wav2lip_interface,
+        simple_wav2lip_generation
+    )
+    SIMPLE_WAV2LIP_AVAILABLE, simple_status = check_simple_wav2lip()
+except ImportError:
+    SIMPLE_WAV2LIP_AVAILABLE = False
+    simple_status = "Simple Wav2Lip not available"
+
 # Check FFmpeg availability
 def check_ffmpeg():
     try:
@@ -391,7 +403,9 @@ def main():
     with col_info1:
         st.success("✅ Audio transcription with Whisper AI")
     with col_info2:
-        if WAV2LIP_AVAILABLE:
+        if SIMPLE_WAV2LIP_AVAILABLE:
+            st.success("✅ Wav2Lip neural lip-sync ready")
+        elif WAV2LIP_AVAILABLE:
             st.success("✅ Wav2Lip neural lip-sync available")
         elif VIDEO_GENERATION_AVAILABLE:
             st.success("✅ Basic video generation available")
@@ -420,7 +434,10 @@ def main():
         generate_video = st.checkbox("Enable video generation", value=False)
         
         if generate_video:
-            if WAV2LIP_AVAILABLE:
+            if SIMPLE_WAV2LIP_AVAILABLE:
+                st.success("🎭 Wav2Lip neural lip-sync ready")
+                st.caption(f"Status: {simple_status}")
+            elif WAV2LIP_AVAILABLE:
                 st.success("🎭 Wav2Lip neural lip-sync ready")
                 st.caption(f"Status: {wav2lip_status}")
             elif VIDEO_GENERATION_AVAILABLE:
@@ -594,6 +611,14 @@ def main():
             st.divider()
             st.header("🎬 Video Generation")
             
+            # Show simple Wav2Lip interface if available
+            if SIMPLE_WAV2LIP_AVAILABLE:
+                streamlit_wav2lip_interface()
+                
+                # Add separator for other options
+                st.divider()
+                st.subheader("🎭 Or use dialogue-based generation:")
+            
             # Debug info
             with st.expander("🔍 Debug Info", expanded=False):
                 st.write("**Session State Debug:**")
@@ -601,6 +626,8 @@ def main():
                 st.write(f"- transcript_data exists: {st.session_state.transcript_data is not None}")
                 st.write(f"- speaker_photos: {list(st.session_state.speaker_photos.keys())}")
                 st.write(f"- generate_video setting: {generate_video}")
+                st.write(f"- SIMPLE_WAV2LIP_AVAILABLE: {SIMPLE_WAV2LIP_AVAILABLE}")
+                st.write(f"- WAV2LIP_AVAILABLE: {WAV2LIP_AVAILABLE}")
                 
                 if st.session_state.transcript_data:
                     st.write(f"- segments count: {len(st.session_state.transcript_data.get('segments', []))}")
