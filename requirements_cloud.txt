@@ -1,0 +1,17 @@
+# Streamlit Cloud Requirements
+streamlit==1.50.0
+openai-whisper==20231117
+torch==2.0.1
+torchaudio==2.0.2
+transformers==4.35.0
+pyannote-audio==3.1.1
+moviepy==1.0.3
+pydub==0.25.1
+librosa==0.10.1
+soundfile==0.12.1
+numpy==1.24.3
+scipy==1.11.3
+
+# Lightweight alternatives
+# whisper-timestamped  # Instead of full pyannote
+# opencv-python-headless  # Instead of full opencv

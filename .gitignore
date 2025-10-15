@@ -1,0 +1,24 @@
+# Ignore large files and models
+Wav2Lip/checkpoints/*.pth
+Wav2Lip/venv39/
+venv39/
+venv/
+*.wav
+*.mp3
+*.mp4
+temp_*
+outputs/
+split_speakers/
+__pycache__/
+*.pyc
+.DS_Store
+.env
+
+# Secrets and tokens
+*token*
+*secret*
+*key*
+auth.py
+hf_*
+
+# Keep lightweight files only for cloud deployment

@@ -1,0 +1,15 @@
+MODEL DOWNLOAD REQUIRED
+
+The wav2lip_gan.pth file is missing or corrupted.
+
+Download instructions:
+1. Go to: https://github.com/Rudrabha/Wav2Lip
+2. Check releases or README for model download link
+3. Download wav2lip_gan.pth (~170MB)
+4. Place in this directory
+
+Alternative sources:
+- HuggingFace model hub
+- Original research paper supplementary materials
+
+Status: CRITICAL - Video generation will fail without this file
