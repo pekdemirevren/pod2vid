@@ -51,63 +51,88 @@ def create_dialogue_preview(segments, speaker_photos):
     """Create a visual dialogue preview from transcript segments"""
     st.subheader("🎭 Dialogue Preview")
     
+    # Debug info
+    st.write(f"**Debug:** Processing {len(segments)} segments with {len(speaker_photos)} speaker photos")
+    
+    if not segments:
+        st.error("❌ No segments provided for dialogue preview!")
+        return False
+    
     # Show how the video would look
     st.write("**This is how your dialogue video would appear:**")
     
-    for i, segment in enumerate(segments[:5]):  # Show first 5 segments
-        # Determine speaker
-        speaker_num = (i % 2) + 1
-        speaker_key = f"speaker{speaker_num}"
+    try:
+        for i, segment in enumerate(segments[:5]):  # Show first 5 segments
+            st.write(f"**Debug:** Processing segment {i+1}: {segment.get('start', 'No start')} - {segment.get('end', 'No end')}")
+            
+            # Determine speaker
+            speaker_num = (i % 2) + 1
+            speaker_key = f"speaker{speaker_num}"
+            
+            # Create scene container
+            with st.container():
+                # Scene header
+                try:
+                    scene_time = format_timestamp(segment["start"])
+                    scene_duration = segment["end"] - segment["start"]
+                    
+                    st.markdown(f"**🎬 Scene {i+1}** - *{scene_time}* ({scene_duration:.1f}s)")
+                except Exception as e:
+                    st.error(f"❌ Error formatting scene {i+1}: {str(e)}")
+                    continue
+                
+                # Speaker and dialogue layout
+                col_avatar, col_dialogue = st.columns([1, 3])
+                
+                with col_avatar:
+                    # Show speaker info
+                    st.markdown(f"**👤 Speaker {speaker_num}**")
+                    
+                    if speaker_key in speaker_photos:
+                        st.success("📷 Using uploaded photo")
+                        st.caption("🎭 Avatar animated")
+                    else:
+                        st.info("🤖 AI generated avatar")
+                        st.caption("🎨 Auto-created face")
+                    
+                    # Animation indicator
+                    st.markdown("🔄 *Speaking animation*")
+                
+                with col_dialogue:
+                    # Dialogue text with speech bubble effect
+                    dialogue_text = segment.get("text", "").strip()
+                    
+                    if not dialogue_text:
+                        st.warning(f"⚠️ No text found for segment {i+1}")
+                        continue
+                    
+                    st.markdown(f"""
+                    <div style="
+                        background-color: #f0f2f6;
+                        padding: 15px;
+                        border-radius: 15px;
+                        border-left: 4px solid #1f77b4;
+                        margin: 10px 0;
+                    ">
+                        <strong>💬 "{dialogue_text}"</strong>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # Speech effects
+                    word_count = len(dialogue_text.split())
+                    speech_duration = segment["end"] - segment["start"]
+                    st.caption(f"🎵 Lip-sync: {word_count} words in {speech_duration:.1f}s")
+                
+                st.divider()
         
-        # Create scene container
-        with st.container():
-            # Scene header
-            scene_time = format_timestamp(segment["start"])
-            scene_duration = segment["end"] - segment["start"]
-            
-            st.markdown(f"**🎬 Scene {i+1}** - *{scene_time}* ({scene_duration:.1f}s)")
-            
-            # Speaker and dialogue layout
-            col_avatar, col_dialogue = st.columns([1, 3])
-            
-            with col_avatar:
-                # Show speaker info
-                st.markdown(f"**👤 Speaker {speaker_num}**")
-                
-                if speaker_key in speaker_photos:
-                    st.success("📷 Using uploaded photo")
-                    st.caption("🎭 Avatar animated")
-                else:
-                    st.info("🤖 AI generated avatar")
-                    st.caption("🎨 Auto-created face")
-                
-                # Animation indicator
-                st.markdown("🔄 *Speaking animation*")
-            
-            with col_dialogue:
-                # Dialogue text with speech bubble effect
-                dialogue_text = segment["text"].strip()
-                
-                st.markdown(f"""
-                <div style="
-                    background-color: #f0f2f6;
-                    padding: 15px;
-                    border-radius: 15px;
-                    border-left: 4px solid #1f77b4;
-                    margin: 10px 0;
-                ">
-                    <strong>💬 "{dialogue_text}"</strong>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # Speech effects
-                word_count = len(dialogue_text.split())
-                speech_duration = scene_duration
-                st.caption(f"🎵 Lip-sync: {word_count} words in {speech_duration:.1f}s")
-            
-            st.divider()
-    
-    return True
+        st.success("✅ Dialogue preview created successfully!")
+        return True
+        
+    except Exception as e:
+        st.error(f"❌ Error in create_dialogue_preview: {str(e)}")
+        st.write(f"**Debug:** segments type: {type(segments)}")
+        st.write(f"**Debug:** speaker_photos type: {type(speaker_photos)}")
+        return False
 
 def detect_speakers_from_text(text):
     """Detect dialogue patterns and estimate speaker count"""
@@ -362,6 +387,18 @@ def main():
             st.divider()
             st.header("🎬 Video Generation")
             
+            # Debug info
+            with st.expander("🔍 Debug Info", expanded=False):
+                st.write("**Session State Debug:**")
+                st.write(f"- transcript_generated: {st.session_state.transcript_generated}")
+                st.write(f"- transcript_data exists: {st.session_state.transcript_data is not None}")
+                st.write(f"- speaker_photos: {list(st.session_state.speaker_photos.keys())}")
+                st.write(f"- generate_video setting: {generate_video}")
+                
+                if st.session_state.transcript_data:
+                    st.write(f"- segments count: {len(st.session_state.transcript_data.get('segments', []))}")
+                    st.write(f"- transcript length: {len(st.session_state.transcript_data.get('text', ''))}")
+            
             # Check if any speaker photos uploaded
             speakers_uploaded = []
             if 'speaker1' in st.session_state.speaker_photos:
@@ -371,8 +408,17 @@ def main():
             if 'speaker3' in st.session_state.speaker_photos:
                 speakers_uploaded.append("Speaker 3")
             
+            st.write(f"**Debug:** Found {len(speakers_uploaded)} uploaded speaker photos: {speakers_uploaded}")
+            
             if speakers_uploaded:
                 st.success(f"✅ Photos uploaded for: {', '.join(speakers_uploaded)}")
+                
+                # Debug transcript data
+                if not st.session_state.transcript_data:
+                    st.error("❌ No transcript data found! Please generate transcript first.")
+                    return
+                
+                result = st.session_state.transcript_data
                 
                 # Speaker detection from transcript
                 speaker_count = len([seg for seg in result["segments"] if "speaker" in seg.get("text", "").lower()])
@@ -381,12 +427,26 @@ def main():
                     speaker_count = 2  # Default for dialogue
                 
                 st.info(f"🗣️ Detected approximately {speaker_count} speakers in audio")
+                st.write(f"**Debug:** Transcript has {len(result.get('segments', []))} segments")
                 
                 col_vid1, col_vid2 = st.columns(2)
                 
                 with col_vid1:
                     if st.button("🎥 Generate Dialogue Video", key="generate_video_btn"):
+                        st.write("**Debug:** Video generation button clicked!")
+                        
+                        # Validate data before generation
+                        if not result.get("segments"):
+                            st.error("❌ No audio segments found in transcript!")
+                            st.stop()
+                        
+                        if len(result["segments"]) == 0:
+                            st.error("❌ Empty segments list!")
+                            st.stop()
+                        
+                        st.write(f"**Debug:** Starting video generation with {len(result['segments'])} segments")
                         st.balloons()
+                        
                         with st.spinner("🎬 Creating dialogue video..."):
                             # Simulate video generation process
                             progress = st.progress(0)
@@ -402,26 +462,36 @@ def main():
                             
                             import time
                             for step_text, prog in steps:
-                                status.text(step_text)
+                                status.text(f"{step_text} (Debug: Step {prog}%)")
                                 progress.progress(prog)
                                 time.sleep(1)
                                 
                             st.success("🎉 Dialogue video generated!")
+                            st.write("**Debug:** Video generation completed successfully!")
                             
                             # Show realistic dialogue preview
-                            create_dialogue_preview(result["segments"], st.session_state.speaker_photos)
+                            try:
+                                create_dialogue_preview(result["segments"], st.session_state.speaker_photos)
+                                st.write("**Debug:** Dialogue preview created successfully!")
+                            except Exception as e:
+                                st.error(f"❌ Error creating dialogue preview: {str(e)}")
                             
                             # Show video stats
-                            total_duration = result["segments"][-1]["end"] if result["segments"] else 0
-                            total_words = len(result["text"].split())
-                            
-                            col_stats1, col_stats2, col_stats3 = st.columns(3)
-                            with col_stats1:
-                                st.metric("Video Length", f"{format_timestamp(total_duration)}")
-                            with col_stats2:
-                                st.metric("Total Words", f"{total_words}")
-                            with col_stats3:
-                                st.metric("Speakers", f"{len(speakers_uploaded) or 2}")
+                            try:
+                                total_duration = result["segments"][-1]["end"] if result["segments"] else 0
+                                total_words = len(result["text"].split())
+                                
+                                col_stats1, col_stats2, col_stats3 = st.columns(3)
+                                with col_stats1:
+                                    st.metric("Video Length", f"{format_timestamp(total_duration)}")
+                                with col_stats2:
+                                    st.metric("Total Words", f"{total_words}")
+                                with col_stats3:
+                                    st.metric("Speakers", f"{len(speakers_uploaded) or 2}")
+                                
+                                st.write("**Debug:** Video stats calculated successfully!")
+                            except Exception as e:
+                                st.error(f"❌ Error calculating video stats: {str(e)}")
                             
                             # Download section
                             st.subheader("📱 Download Your Video")
