@@ -6,13 +6,13 @@ import shutil
 import subprocess
 import time
 
-# Import video generation
+# Import video generation (silently)
 try:
     from video_generator import create_animated_video
     VIDEO_GENERATION_AVAILABLE = True
 except ImportError:
     VIDEO_GENERATION_AVAILABLE = False
-    st.warning("⚠️ Video generation module not available")
+    # Don't show warning immediately - only when needed
 
 # Check FFmpeg availability
 def check_ffmpeg():
@@ -374,6 +374,16 @@ def main():
     st.title("🎙️ AI Podcast Video Generator 2025")
     st.write("🤖 No-code AI automation: Audio → Transcript → Video")
     
+    # Feature status info
+    col_info1, col_info2 = st.columns(2)
+    with col_info1:
+        st.success("✅ Audio transcription with Whisper AI")
+    with col_info2:
+        if VIDEO_GENERATION_AVAILABLE:
+            st.success("✅ Advanced video generation available")
+        else:
+            st.info("📱 Interactive video preview mode")
+    
     # Initialize session state
     if 'transcript_generated' not in st.session_state:
         st.session_state.transcript_generated = False
@@ -396,6 +406,10 @@ def main():
         generate_video = st.checkbox("Enable video generation", value=False)
         
         if generate_video:
+            if VIDEO_GENERATION_AVAILABLE:
+                st.success("🎬 Advanced video generation available")
+            else:
+                st.info("📱 Interactive video preview mode")
             st.info("🎬 Video generation will be available after transcript")
         
         # Clear session button
