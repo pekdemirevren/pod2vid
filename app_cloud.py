@@ -47,6 +47,68 @@ def format_timestamp(seconds):
     seconds = int(seconds % 60)
     return f"{minutes:02d}:{seconds:02d}"
 
+def create_dialogue_preview(segments, speaker_photos):
+    """Create a visual dialogue preview from transcript segments"""
+    st.subheader("🎭 Dialogue Preview")
+    
+    # Show how the video would look
+    st.write("**This is how your dialogue video would appear:**")
+    
+    for i, segment in enumerate(segments[:5]):  # Show first 5 segments
+        # Determine speaker
+        speaker_num = (i % 2) + 1
+        speaker_key = f"speaker{speaker_num}"
+        
+        # Create scene container
+        with st.container():
+            # Scene header
+            scene_time = format_timestamp(segment["start"])
+            scene_duration = segment["end"] - segment["start"]
+            
+            st.markdown(f"**🎬 Scene {i+1}** - *{scene_time}* ({scene_duration:.1f}s)")
+            
+            # Speaker and dialogue layout
+            col_avatar, col_dialogue = st.columns([1, 3])
+            
+            with col_avatar:
+                # Show speaker info
+                st.markdown(f"**👤 Speaker {speaker_num}**")
+                
+                if speaker_key in speaker_photos:
+                    st.success("📷 Using uploaded photo")
+                    st.caption("🎭 Avatar animated")
+                else:
+                    st.info("🤖 AI generated avatar")
+                    st.caption("🎨 Auto-created face")
+                
+                # Animation indicator
+                st.markdown("🔄 *Speaking animation*")
+            
+            with col_dialogue:
+                # Dialogue text with speech bubble effect
+                dialogue_text = segment["text"].strip()
+                
+                st.markdown(f"""
+                <div style="
+                    background-color: #f0f2f6;
+                    padding: 15px;
+                    border-radius: 15px;
+                    border-left: 4px solid #1f77b4;
+                    margin: 10px 0;
+                ">
+                    <strong>💬 "{dialogue_text}"</strong>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Speech effects
+                word_count = len(dialogue_text.split())
+                speech_duration = scene_duration
+                st.caption(f"🎵 Lip-sync: {word_count} words in {speech_duration:.1f}s")
+            
+            st.divider()
+    
+    return True
+
 def detect_speakers_from_text(text):
     """Detect dialogue patterns and estimate speaker count"""
     # Look for dialogue indicators
@@ -346,16 +408,78 @@ def main():
                                 
                             st.success("🎉 Dialogue video generated!")
                             
-                            # Show video preview placeholder
-                            st.video("https://www.w3schools.com/html/mov_bbb.mp4")
+                            # Show realistic dialogue preview
+                            create_dialogue_preview(result["segments"], st.session_state.speaker_photos)
                             
-                            # Download button
-                            st.download_button(
-                                "� Download Video",
-                                data=b"demo video data",
-                                file_name=f"dialogue_{st.session_state.audio_file_name}.mp4",
-                                mime="video/mp4"
-                            )
+                            # Show video stats
+                            total_duration = result["segments"][-1]["end"] if result["segments"] else 0
+                            total_words = len(result["text"].split())
+                            
+                            col_stats1, col_stats2, col_stats3 = st.columns(3)
+                            with col_stats1:
+                                st.metric("Video Length", f"{format_timestamp(total_duration)}")
+                            with col_stats2:
+                                st.metric("Total Words", f"{total_words}")
+                            with col_stats3:
+                                st.metric("Speakers", f"{len(speakers_uploaded) or 2}")
+                            
+                            # Download section
+                            st.subheader("📱 Download Your Video")
+                            
+                            col_dl1, col_dl2 = st.columns(2)
+                            
+                            with col_dl1:
+                                # Create demo video content based on actual dialogue
+                                video_content = f"""# Generated Video: {st.session_state.audio_file_name}
+# Total Duration: {format_timestamp(total_duration) if 'total_duration' in locals() else 'Unknown'}
+# Speakers: {len(speakers_uploaded) or 'Auto-detected'}
+
+=== VIDEO SCRIPT ===
+"""
+                                if result and "segments" in result:
+                                    for i, segment in enumerate(result["segments"]):
+                                        speaker_num = (i % 2) + 1
+                                        start_time = format_timestamp(segment["start"])
+                                        end_time = format_timestamp(segment["end"])
+                                        text = segment["text"].strip()
+                                        video_content += f"\n[{start_time}-{end_time}] Speaker {speaker_num}: {text}\n"
+                                
+                                st.download_button(
+                                    "📄 Download Video Script",
+                                    video_content.encode('utf-8'),
+                                    file_name=f"video_script_{st.session_state.audio_file_name}.txt",
+                                    mime="text/plain"
+                                )
+                            
+                            with col_dl2:
+                                # Simulated video file (in real implementation, this would be actual video)
+                                st.download_button(
+                                    "🎬 Download Video (Demo)",
+                                    data=f"Demo video for: {st.session_state.audio_file_name}".encode('utf-8'),
+                                    file_name=f"dialogue_{st.session_state.audio_file_name}.mp4",
+                                    mime="video/mp4",
+                                    help="This is a demo - real video would be generated here"
+                                )
+                            
+                            # Real video preview message
+                            st.info("""
+                            🎬 **Real Video Preview:**
+                            In production, this would show:
+                            • Your uploaded speaker photos as animated avatars
+                            • Lip-synchronized speech matching your audio
+                            • Scene transitions between speakers
+                            • Customized backgrounds and effects
+                            """)
+                            
+                            # Technical details
+                            with st.expander("🔧 Technical Details"):
+                                st.write("**Video Generation Process:**")
+                                st.write("1. 📊 Audio analysis and speaker detection")
+                                st.write("2. 👤 Face photo processing and avatar creation") 
+                                st.write("3. 🎭 Lip-sync animation generation")
+                                st.write("4. 🎬 Scene composition and rendering")
+                                st.write("5. 🎵 Audio-video synchronization")
+                                st.write("6. 📱 Format optimization for platforms")
                 
                 with col_vid2:
                     st.write("📋 **Video Settings:**")
