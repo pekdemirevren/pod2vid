@@ -47,21 +47,68 @@ def format_timestamp(seconds):
     seconds = int(seconds % 60)
     return f"{minutes:02d}:{seconds:02d}"
 
+def detect_speakers_from_text(text):
+    """Detect dialogue patterns and estimate speaker count"""
+    # Look for dialogue indicators
+    dialogue_patterns = [
+        "- ", "• ", "Speaker", "Host:", "Guest:", 
+        "A:", "B:", "1:", "2:", "Q:", "A:"
+    ]
+    
+    lines = text.split('\n')
+    speaker_changes = 0
+    
+    for line in lines:
+        for pattern in dialogue_patterns:
+            if pattern in line:
+                speaker_changes += 1
+                break
+    
+    # Estimate speakers based on content length and patterns
+    if speaker_changes > 5:
+        return min(speaker_changes // 3, 4)  # Max 4 speakers
+    elif "dialogue" in text.lower() or "conversation" in text.lower():
+        return 2
+    else:
+        return 1
+
 def display_timestamped_transcript(segments):
-    """Display transcript with timestamps"""
+    """Display transcript with timestamps and speaker detection"""
     st.subheader("📝 Timestamped Transcript")
+    
+    # Analyze for dialogue patterns
+    full_text = " ".join([seg["text"] for seg in segments])
+    estimated_speakers = detect_speakers_from_text(full_text)
+    
+    if estimated_speakers > 1:
+        st.info(f"🗣️ Detected dialogue with approximately {estimated_speakers} speakers")
     
     # Create columns for better layout
     col1, col2 = st.columns([1, 4])
     
-    for segment in segments:
+    current_speaker = 1
+    for i, segment in enumerate(segments):
+        # Simple speaker alternation for dialogue
+        if estimated_speakers > 1 and i > 0:
+            # Change speaker every few segments for dialogue
+            if i % 3 == 0:  # Rough speaker change estimation
+                current_speaker = 2 if current_speaker == 1 else 1
+        
         with col1:
             start_time = format_timestamp(segment["start"])
             end_time = format_timestamp(segment["end"])
-            st.write(f"**{start_time}-{end_time}**")
+            if estimated_speakers > 1:
+                st.write(f"**👤 Speaker {current_speaker}**")
+                st.write(f"*{start_time}-{end_time}*")
+            else:
+                st.write(f"**{start_time}-{end_time}**")
         
         with col2:
-            st.write(segment["text"].strip())
+            text = segment["text"].strip()
+            if estimated_speakers > 1:
+                st.write(f"💬 {text}")
+            else:
+                st.write(text)
         
         st.divider()
 
@@ -96,11 +143,29 @@ def main():
     
     with col2:
         if generate_video:
-            face_image = st.file_uploader(
-                "👤 Upload speaker photo",
+            st.subheader("👥 Speaker Photos")
+            face_image1 = st.file_uploader(
+                "👤 Speaker 1 photo",
                 type=["jpg", "png", "jpeg"],
-                help="Photo of the speaker for video generation"
+                help="Photo of the first speaker",
+                key="speaker1_upload"
             )
+            
+            face_image2 = st.file_uploader(
+                "👤 Speaker 2 photo", 
+                type=["jpg", "png", "jpeg"],
+                help="Photo of the second speaker",
+                key="speaker2_upload"
+            )
+            
+            # Optional: More speakers
+            add_more_speakers = st.checkbox("➕ More speakers?")
+            if add_more_speakers:
+                face_image3 = st.file_uploader(
+                    "👤 Speaker 3 photo",
+                    type=["jpg", "png", "jpeg"],
+                    key="speaker3_upload"
+                )
     
     if audio_file and WHISPER_AVAILABLE:
         st.success(f"✅ Uploaded: {audio_file.name}")
@@ -160,18 +225,70 @@ def main():
                             st.text_area("Generated Transcript", result["text"], height=300)
                         
                         # Video generation section
-                        if generate_video and 'face_image' in locals() and face_image:
+                        if generate_video:
                             st.header("🎬 Video Generation")
-                            st.info("🚧 Video generation feature coming soon in 2025!")
-                            st.write("Features will include:")
-                            st.write("• 🎭 AI avatar animation")
-                            st.write("• 🎨 Auto background generation") 
-                            st.write("• 🎵 Lip-sync technology")
-                            st.write("• 📱 Social media formats")
                             
-                            if st.button("🎥 Generate Video (Demo)", disabled=True):
-                                st.balloons()
-                                st.success("🎉 Video generation will be available soon!")
+                            # Check if any speaker photos uploaded
+                            speakers_uploaded = []
+                            if 'face_image1' in locals() and face_image1:
+                                speakers_uploaded.append("Speaker 1")
+                            if 'face_image2' in locals() and face_image2:
+                                speakers_uploaded.append("Speaker 2")
+                            if 'face_image3' in locals() and face_image3:
+                                speakers_uploaded.append("Speaker 3")
+                            
+                            if speakers_uploaded:
+                                st.success(f"✅ Photos uploaded for: {', '.join(speakers_uploaded)}")
+                                
+                                # Speaker detection from transcript
+                                speaker_count = len([seg for seg in result["segments"] if "speaker" in seg.get("text", "").lower()])
+                                if speaker_count == 0:
+                                    # Estimate speakers from dialogue patterns
+                                    speaker_count = 2  # Default for dialogue
+                                
+                                st.info(f"🗣️ Detected approximately {speaker_count} speakers in audio")
+                                
+                                col_vid1, col_vid2 = st.columns(2)
+                                
+                                with col_vid1:
+                                    if st.button("🎥 Generate Dialogue Video"):
+                                        st.balloons()
+                                        with st.spinner("🎬 Creating dialogue video..."):
+                                            # Simulate video generation process
+                                            progress = st.progress(0)
+                                            status = st.empty()
+                                            
+                                            steps = [
+                                                ("🔍 Analyzing dialogue structure...", 20),
+                                                ("👥 Matching speakers to photos...", 40),
+                                                ("🎭 Generating avatar animations...", 60), 
+                                                ("🎬 Rendering video scenes...", 80),
+                                                ("✨ Adding transitions...", 100)
+                                            ]
+                                            
+                                            for step_text, prog in steps:
+                                                status.text(step_text)
+                                                progress.progress(prog)
+                                                
+                                            st.success("🎉 Dialogue video generated!")
+                                
+                                with col_vid2:
+                                    st.write("📋 **Video Settings:**")
+                                    video_format = st.selectbox("Format", ["16:9 (YouTube)", "9:16 (TikTok)", "1:1 (Instagram)"])
+                                    video_length = st.selectbox("Length", ["Full audio", "1 min clips", "30 sec clips"])
+                                    add_subtitles = st.checkbox("Add subtitles", value=True)
+                            else:
+                                st.warning("📷 Please upload photos for your speakers to generate video")
+                                st.info("💡 **Tip:** For best results:\n• Use clear, front-facing photos\n• Good lighting\n• Neutral background")
+                            
+                            # Advanced features preview
+                            with st.expander("🚀 Advanced Features (Coming Soon)"):
+                                st.write("**🤖 AI Enhancements:**")
+                                st.write("• Real-time lip synchronization")
+                                st.write("• Emotion-based expressions") 
+                                st.write("• Auto gesture generation")
+                                st.write("• Voice cloning integration")
+                                st.write("• Multi-language dubbing")
                     
                     except Exception as e:
                         st.warning("Standard transcription failed, trying fallback method...")

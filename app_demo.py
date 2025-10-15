@@ -10,25 +10,26 @@ def main():
     
     # Demo video generation function
     def simulate_video_generation():
-        """Simulate the video generation process with progress"""
+        """Simulate the dialogue video generation process with progress"""
         progress_bar = st.progress(0)
         status_text = st.empty()
         
         steps = [
-            ("🎤 Analyzing audio...", 20),
-            ("🗣️ Detecting speakers...", 40), 
-            ("🎭 Generating avatars...", 60),
-            ("🎬 Creating video...", 80),
-            ("✨ Adding effects...", 90),
-            ("🎉 Video ready!", 100)
+            ("🎤 Analyzing dialogue audio...", 15),
+            ("🗣️ Detecting speaker segments...", 30),
+            ("👥 Matching speakers to photos...", 45),
+            ("🎭 Generating speaker avatars...", 60),
+            ("💬 Creating dialogue scenes...", 75),
+            ("🎬 Rendering conversation video...", 90),
+            ("✨ Adding dialogue transitions...", 100)
         ]
         
         for step, progress in steps:
             status_text.text(step)
             progress_bar.progress(progress)
-            time.sleep(1)
+            time.sleep(1.2)  # Slightly longer for dialogue processing
         
-        return "demo_video.mp4"
+        return "dialogue_video.mp4"
     
     # Sidebar
     with st.sidebar:
@@ -71,22 +72,44 @@ def main():
         )
         
         # Optional: Speaker photos
-        st.subheader("👤 Speaker Photos (Optional)")
+        st.subheader("� Dialogue Speakers")
+        st.write("Upload photos for each speaker in your dialogue:")
+        
         col_a, col_b = st.columns(2)
         
         with col_a:
             speaker1_photo = st.file_uploader(
-                "Speaker 1 photo", 
+                "👤 Speaker 1 (Host/Person A)", 
                 type=["jpg", "png"],
                 key="speaker1"
             )
+            if speaker1_photo:
+                st.success("✅ Speaker 1 photo uploaded")
         
         with col_b:
             speaker2_photo = st.file_uploader(
-                "Speaker 2 photo", 
+                "👤 Speaker 2 (Guest/Person B)", 
                 type=["jpg", "png"], 
                 key="speaker2"
             )
+            if speaker2_photo:
+                st.success("✅ Speaker 2 photo uploaded")
+        
+        # Additional speakers for group conversations
+        if st.checkbox("➕ More speakers in dialogue?"):
+            col_c, col_d = st.columns(2)
+            with col_c:
+                speaker3_photo = st.file_uploader(
+                    "👤 Speaker 3", 
+                    type=["jpg", "png"],
+                    key="speaker3"
+                )
+            with col_d:
+                speaker4_photo = st.file_uploader(
+                    "👤 Speaker 4", 
+                    type=["jpg", "png"],
+                    key="speaker4"
+                )
     
     with col2:
         st.header("🎯 Quick Actions")
