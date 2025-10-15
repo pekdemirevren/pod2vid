@@ -1,16 +1,16 @@
 # Streamlit Cloud Requirements
-streamlit
-openai-whisper
-librosa
-soundfile
+torch==1.10.2
+torchvision==0.11.3
+opencv-python-headless
 numpy
-opencv-python
-Pillow
-torch
-torchvision
+streamlit
+face-alignment==1.3.5
 scipy
+librosa
+moviepy
+openai-whisper
+soundfile
 tqdm
-face-alignment
 torch==2.0.1
 torchaudio==2.0.2
 transformers==4.35.0

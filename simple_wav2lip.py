@@ -4,6 +4,7 @@ import os
 from tempfile import NamedTemporaryFile
 import tempfile
 from pathlib import Path
+import sys
 
 def simple_wav2lip_generation(face_file, audio_file, output_path):
     """
@@ -32,14 +33,17 @@ def simple_wav2lip_generation(face_file, audio_file, output_path):
 
         # Build command
         cmd = [
-            "python", str(wav2lip_dir / "inference.py"),
+            sys.executable,  # Use current Python interpreter
+            str(wav2lip_dir / "inference.py"),
             "--checkpoint_path", str(checkpoint_path),
             "--face", face_path,
             "--audio", audio_path,
             "--outfile", output_path,
             "--static", "True",  # Use static image for efficiency
-            "--face_det_batch_size", "1",  # Minimal batch size
-            "--wav2lip_batch_size", "16"   # Small batch for CPU
+            "--face_det_batch_size", "1",  # Minimal batch size for cloud
+            "--wav2lip_batch_size", "16",   # Small batch for CPU
+            "--resize_factor", "2",  # Reduce resolution for faster processing
+            "--nosmooth"  # Disable smoothing for faster processing
         ]
         
         # Change to Wav2Lip directory
@@ -82,6 +86,9 @@ def streamlit_wav2lip_interface():
     """
     st.subheader("🎭 Wav2Lip Neural Lip-Sync")
     st.markdown("Upload a **face photo** and **audio** to generate talking video")
+    
+    # Cloud optimization warning
+    st.info("⚡ **Cloud Optimization**: For best results use:\n• Face images < 1MB\n• Audio files < 30 seconds\n• Processing time: ~2-3 minutes")
     
     col1, col2 = st.columns(2)
     
