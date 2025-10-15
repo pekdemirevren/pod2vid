@@ -4,6 +4,8 @@ openai-whisper
 librosa
 soundfile
 numpy
+opencv-python
+Pillow
 torch==2.0.1
 torchaudio==2.0.2
 transformers==4.35.0

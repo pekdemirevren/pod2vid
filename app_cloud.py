@@ -4,6 +4,15 @@ import tempfile
 from pathlib import Path
 import shutil
 import subprocess
+import time
+
+# Import video generation
+try:
+    from video_generator import create_animated_video
+    VIDEO_GENERATION_AVAILABLE = True
+except ImportError:
+    VIDEO_GENERATION_AVAILABLE = False
+    st.warning("⚠️ Video generation module not available")
 
 # Check FFmpeg availability
 def check_ffmpeg():
@@ -609,8 +618,55 @@ def main():
                         st.write(f"**Debug:** Starting video generation with {len(result['segments'])} segments")
                         st.balloons()
                         
-                        with st.spinner("🎬 Creating dialogue video..."):
-                            # Simulate video generation process
+                        with st.spinner("🎬 Creating real animated video..."):
+                            # Create real animated video
+                            if VIDEO_GENERATION_AVAILABLE and st.session_state.speaker_photos:
+                                st.info("🎭 Generating REAL animated video with your photos...")
+                                
+                                try:
+                                    # Create temporary output path
+                                    output_path = tempfile.mktemp(suffix='.mp4')
+                                    
+                                    # Generate real video
+                                    success = create_animated_video(
+                                        result["segments"][:3],  # First 3 segments for demo
+                                        st.session_state.speaker_photos,
+                                        None,  # Audio file path (optional)
+                                        output_path
+                                    )
+                                    
+                                    if success and os.path.exists(output_path):
+                                        st.success("🎉 REAL animated video generated!")
+                                        
+                                        # Show the actual video
+                                        with open(output_path, 'rb') as video_file:
+                                            video_bytes = video_file.read()
+                                        
+                                        st.subheader("🎬 Your Animated Video")
+                                        st.video(video_bytes)
+                                        
+                                        # Download button for real video
+                                        st.download_button(
+                                            "📱 Download Animated Video",
+                                            data=video_bytes,
+                                            file_name=f"animated_dialogue_{st.session_state.audio_file_name}.mp4",
+                                            mime="video/mp4"
+                                        )
+                                        
+                                        st.success("✅ Real video with your uploaded photos speaking!")
+                                        
+                                        # Cleanup
+                                        os.unlink(output_path)
+                                        
+                                    else:
+                                        raise Exception("Video generation failed")
+                                        
+                                except Exception as e:
+                                    st.error(f"❌ Error generating real video: {str(e)}")
+                                    st.info("🔄 Falling back to interactive preview...")
+                                    # Fall through to interactive preview
+                            
+                            # Interactive preview (fallback or default)
                             progress = st.progress(0)
                             status = st.empty()
                             
@@ -622,13 +678,15 @@ def main():
                                 ("✨ Adding transitions...", 100)
                             ]
                             
-                            import time
                             for step_text, prog in steps:
                                 status.text(f"{step_text} (Debug: Step {prog}%)")
                                 progress.progress(prog)
                                 time.sleep(1)
                                 
-                            st.success("🎉 Dialogue video generated!")
+                            if not VIDEO_GENERATION_AVAILABLE or not st.session_state.speaker_photos:
+                                st.info("� Interactive preview mode (upload photos for real animation)")
+                            
+                            st.success("🎉 Video processing completed!")
                             st.write("**Debug:** Video generation completed successfully!")
                             
                             # Show realistic dialogue preview
