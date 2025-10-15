@@ -15,12 +15,14 @@ def simple_wav2lip_generation(face_file, audio_file, output_path):
         current_dir = Path(__file__).parent
         wav2lip_dir = current_dir / "Wav2Lip"
         
-        # Check checkpoint
+        # Check checkpoint priority: checkpoints/wav2lip.pth > Wav2Lip_gan.pth > models/wav2lip_gan.pth
         checkpoint_path = wav2lip_dir / "checkpoints" / "wav2lip.pth"
         if not checkpoint_path.exists():
             checkpoint_path = wav2lip_dir / "Wav2Lip_gan.pth"
             if not checkpoint_path.exists():
-                return False, "No checkpoint found"
+                checkpoint_path = current_dir / "models" / "wav2lip_gan.pth"
+                if not checkpoint_path.exists():
+                    return False, "No checkpoint found"
         
         # Create temporary files
         with NamedTemporaryFile(delete=False, suffix=".jpg") as face_tmp:
@@ -186,9 +188,11 @@ def check_simple_wav2lip():
             return False, "inference.py not found"
             
         # Check for any checkpoint
+        project_root = Path(__file__).parent
         checkpoints = [
             wav2lip_dir / "checkpoints" / "wav2lip.pth",
-            wav2lip_dir / "Wav2Lip_gan.pth"
+            wav2lip_dir / "Wav2Lip_gan.pth",
+            project_root / "models" / "wav2lip_gan.pth"
         ]
         
         for checkpoint in checkpoints:
