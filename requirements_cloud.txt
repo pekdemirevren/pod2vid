@@ -6,6 +6,11 @@ soundfile
 numpy
 opencv-python
 Pillow
+torch
+torchvision
+scipy
+tqdm
+face-alignment
 torch==2.0.1
 torchaudio==2.0.2
 transformers==4.35.0

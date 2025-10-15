@@ -6,13 +6,25 @@ import shutil
 import subprocess
 import time
 
-# Import video generation (silently)
+# Import video generation
 try:
     from video_generator import create_animated_video
     VIDEO_GENERATION_AVAILABLE = True
 except ImportError:
     VIDEO_GENERATION_AVAILABLE = False
     # Don't show warning immediately - only when needed
+
+# Import Wav2Lip integration
+try:
+    from wav2lip_integration import (
+        check_wav2lip_available, 
+        generate_wav2lip_video,
+        create_dialogue_video_with_wav2lip
+    )
+    WAV2LIP_AVAILABLE, wav2lip_status = check_wav2lip_available()
+except ImportError:
+    WAV2LIP_AVAILABLE = False
+    wav2lip_status = "Wav2Lip module not available"
 
 # Check FFmpeg availability
 def check_ffmpeg():
@@ -379,8 +391,10 @@ def main():
     with col_info1:
         st.success("✅ Audio transcription with Whisper AI")
     with col_info2:
-        if VIDEO_GENERATION_AVAILABLE:
-            st.success("✅ Advanced video generation available")
+        if WAV2LIP_AVAILABLE:
+            st.success("✅ Wav2Lip neural lip-sync available")
+        elif VIDEO_GENERATION_AVAILABLE:
+            st.success("✅ Basic video generation available")
         else:
             st.info("📱 Interactive video preview mode")
     
@@ -406,8 +420,11 @@ def main():
         generate_video = st.checkbox("Enable video generation", value=False)
         
         if generate_video:
-            if VIDEO_GENERATION_AVAILABLE:
-                st.success("🎬 Advanced video generation available")
+            if WAV2LIP_AVAILABLE:
+                st.success("🎭 Wav2Lip neural lip-sync ready")
+                st.caption(f"Status: {wav2lip_status}")
+            elif VIDEO_GENERATION_AVAILABLE:
+                st.success("🎬 Basic video generation available")
             else:
                 st.info("📱 Interactive video preview mode")
             st.info("🎬 Video generation will be available after transcript")
@@ -471,6 +488,11 @@ def main():
         
         # Store audio file name
         st.session_state.audio_file_name = audio_file.name
+        
+        # Store audio bytes for Wav2Lip
+        audio_file.seek(0)  # Reset file pointer
+        st.session_state.audio_bytes = audio_file.read()
+        audio_file.seek(0)  # Reset for transcript generation
         
         if st.button("🎯 Generate Transcript", type="primary"):
             with st.spinner("🤖 AI processing your audio..."):
@@ -617,7 +639,54 @@ def main():
                 col_vid1, col_vid2 = st.columns(2)
                 
                 with col_vid1:
-                    if st.button("🎥 Generate Dialogue Video", key="generate_video_btn"):
+                    # Wav2Lip neural lip-sync button
+                    if WAV2LIP_AVAILABLE and st.button("🧠 Generate Neural Lip-Sync Video", key="wav2lip_btn"):
+                        st.write("**Debug:** Wav2Lip neural generation started!")
+                        st.balloons()
+                        
+                        with st.spinner("🧠 Running Wav2Lip neural network..."):
+                            try:
+                                # Get audio file bytes (we need original audio)
+                                if 'audio_bytes' not in st.session_state:
+                                    st.error("❌ Original audio not found. Please re-upload audio file.")
+                                    st.stop()
+                                
+                                # Generate videos for each speaker
+                                generated_videos, status = create_dialogue_video_with_wav2lip(
+                                    result["segments"], 
+                                    st.session_state.speaker_photos,
+                                    st.session_state.audio_bytes
+                                )
+                                
+                                if generated_videos:
+                                    st.success("🎉 Wav2Lip neural lip-sync completed!")
+                                    
+                                    # Show generated videos
+                                    for video_info in generated_videos:
+                                        st.subheader(f"🎭 {video_info['speaker']} - Neural Lip-Sync")
+                                        
+                                        # Load and display video
+                                        with open(video_info['video_path'], 'rb') as f:
+                                            video_bytes = f.read()
+                                        
+                                        st.video(video_bytes)
+                                        
+                                        # Download button
+                                        st.download_button(
+                                            f"📱 Download {video_info['speaker']} Video",
+                                            data=video_bytes,
+                                            file_name=f"wav2lip_{video_info['speaker']}_{st.session_state.audio_file_name}.mp4",
+                                            mime="video/mp4"
+                                        )
+                                else:
+                                    st.error(f"❌ Wav2Lip generation failed: {status}")
+                                    
+                            except Exception as e:
+                                st.error(f"❌ Neural lip-sync error: {str(e)}")
+                                st.info("🔄 Falling back to basic video generation...")
+                    
+                    # Basic video generation button (fallback)
+                    elif st.button("🎥 Generate Dialogue Video", key="generate_video_btn"):
                         st.write("**Debug:** Video generation button clicked!")
                         
                         # Validate data before generation
