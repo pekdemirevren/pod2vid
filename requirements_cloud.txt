@@ -1,6 +1,9 @@
 # Streamlit Cloud Requirements
-streamlit==1.50.0
-openai-whisper==20231117
+streamlit
+openai-whisper
+librosa
+soundfile
+numpy
 torch==2.0.1
 torchaudio==2.0.2
 transformers==4.35.0
