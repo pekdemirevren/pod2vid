@@ -6,6 +6,20 @@ import shutil
 import subprocess
 import time
 
+# Download models on startup (for Streamlit Cloud)
+@st.cache_resource
+def ensure_models_downloaded():
+    """Download models if needed (cached)"""
+    try:
+        from download_models import download_model
+        return download_model()
+    except Exception as e:
+        st.warning(f"Model download check failed: {e}")
+        return False
+
+# Ensure models are available
+ensure_models_downloaded()
+
 # Import video generation
 try:
     from video_generator import create_animated_video

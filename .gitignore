@@ -1,6 +1,8 @@
 # Ignore large files and models
 Wav2Lip/checkpoints/*.pth
 Wav2Lip/venv39/
+models/*.pth
+models/*.pt
 venv39/
 venv/
 *.wav
