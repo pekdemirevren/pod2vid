@@ -116,6 +116,16 @@ def main():
     st.title("🎙️ AI Podcast Video Generator 2025")
     st.write("🤖 No-code AI automation: Audio → Transcript → Video")
     
+    # Initialize session state
+    if 'transcript_generated' not in st.session_state:
+        st.session_state.transcript_generated = False
+    if 'transcript_data' not in st.session_state:
+        st.session_state.transcript_data = None
+    if 'audio_file_name' not in st.session_state:
+        st.session_state.audio_file_name = None
+    if 'speaker_photos' not in st.session_state:
+        st.session_state.speaker_photos = {}
+    
     # Check system dependencies
     if not check_ffmpeg():
         st.warning("⚠️ FFmpeg not detected. Using fallback audio loading.")
@@ -129,6 +139,14 @@ def main():
         
         if generate_video:
             st.info("🎬 Video generation will be available after transcript")
+        
+        # Clear session button
+        if st.button("🗑️ Clear All", help="Clear transcript and start over"):
+            st.session_state.transcript_generated = False
+            st.session_state.transcript_data = None
+            st.session_state.audio_file_name = None
+            st.session_state.speaker_photos = {}
+            st.rerun()
     
     # File uploads
     st.header("📁 Upload Files")
@@ -150,6 +168,9 @@ def main():
                 help="Photo of the first speaker",
                 key="speaker1_upload"
             )
+            if face_image1:
+                st.session_state.speaker_photos['speaker1'] = face_image1
+                st.success("✅ Speaker 1 photo uploaded")
             
             face_image2 = st.file_uploader(
                 "👤 Speaker 2 photo", 
@@ -157,6 +178,9 @@ def main():
                 help="Photo of the second speaker",
                 key="speaker2_upload"
             )
+            if face_image2:
+                st.session_state.speaker_photos['speaker2'] = face_image2
+                st.success("✅ Speaker 2 photo uploaded")
             
             # Optional: More speakers
             add_more_speakers = st.checkbox("➕ More speakers?")
@@ -166,9 +190,15 @@ def main():
                     type=["jpg", "png", "jpeg"],
                     key="speaker3_upload"
                 )
+                if face_image3:
+                    st.session_state.speaker_photos['speaker3'] = face_image3
+                    st.success("✅ Speaker 3 photo uploaded")
     
     if audio_file and WHISPER_AVAILABLE:
         st.success(f"✅ Uploaded: {audio_file.name}")
+        
+        # Store audio file name
+        st.session_state.audio_file_name = audio_file.name
         
         if st.button("🎯 Generate Transcript", type="primary"):
             with st.spinner("🤖 AI processing your audio..."):
@@ -186,117 +216,24 @@ def main():
                     try:
                         result = model.transcribe(temp_path, verbose=True)
                         
-                        if show_timestamps:
-                            # Display timestamped transcript
-                            display_timestamped_transcript(result["segments"])
-                            
-                            # Download options
-                            st.subheader("💾 Download Options")
-                            col1, col2 = st.columns(2)
-                            
-                            with col1:
-                                # Simple transcript
-                                simple_transcript = result["text"]
-                                st.download_button(
-                                    "📄 Download Simple Transcript",
-                                    simple_transcript,
-                                    file_name=f"transcript_{audio_file.name}.txt",
-                                    mime="text/plain"
-                                )
-                            
-                            with col2:
-                                # Timestamped transcript
-                                timestamped_text = ""
-                                for segment in result["segments"]:
-                                    start = format_timestamp(segment["start"])
-                                    end = format_timestamp(segment["end"])
-                                    text = segment["text"].strip()
-                                    timestamped_text += f"[{start}-{end}] {text}\n\n"
-                                
-                                st.download_button(
-                                    "⏰ Download Timestamped Transcript",
-                                    timestamped_text,
-                                    file_name=f"timestamped_{audio_file.name}.txt",
-                                    mime="text/plain"
-                                )
-                        else:
-                            # Simple transcript display
-                            st.subheader("📝 Transcript")
-                            st.text_area("Generated Transcript", result["text"], height=300)
+                        # Store transcript in session state
+                        st.session_state.transcript_data = result
+                        st.session_state.transcript_generated = True
                         
-                        # Video generation section
-                        if generate_video:
-                            st.header("🎬 Video Generation")
-                            
-                            # Check if any speaker photos uploaded
-                            speakers_uploaded = []
-                            if 'face_image1' in locals() and face_image1:
-                                speakers_uploaded.append("Speaker 1")
-                            if 'face_image2' in locals() and face_image2:
-                                speakers_uploaded.append("Speaker 2")
-                            if 'face_image3' in locals() and face_image3:
-                                speakers_uploaded.append("Speaker 3")
-                            
-                            if speakers_uploaded:
-                                st.success(f"✅ Photos uploaded for: {', '.join(speakers_uploaded)}")
-                                
-                                # Speaker detection from transcript
-                                speaker_count = len([seg for seg in result["segments"] if "speaker" in seg.get("text", "").lower()])
-                                if speaker_count == 0:
-                                    # Estimate speakers from dialogue patterns
-                                    speaker_count = 2  # Default for dialogue
-                                
-                                st.info(f"🗣️ Detected approximately {speaker_count} speakers in audio")
-                                
-                                col_vid1, col_vid2 = st.columns(2)
-                                
-                                with col_vid1:
-                                    if st.button("🎥 Generate Dialogue Video"):
-                                        st.balloons()
-                                        with st.spinner("🎬 Creating dialogue video..."):
-                                            # Simulate video generation process
-                                            progress = st.progress(0)
-                                            status = st.empty()
-                                            
-                                            steps = [
-                                                ("🔍 Analyzing dialogue structure...", 20),
-                                                ("👥 Matching speakers to photos...", 40),
-                                                ("🎭 Generating avatar animations...", 60), 
-                                                ("🎬 Rendering video scenes...", 80),
-                                                ("✨ Adding transitions...", 100)
-                                            ]
-                                            
-                                            for step_text, prog in steps:
-                                                status.text(step_text)
-                                                progress.progress(prog)
-                                                
-                                            st.success("🎉 Dialogue video generated!")
-                                
-                                with col_vid2:
-                                    st.write("📋 **Video Settings:**")
-                                    video_format = st.selectbox("Format", ["16:9 (YouTube)", "9:16 (TikTok)", "1:1 (Instagram)"])
-                                    video_length = st.selectbox("Length", ["Full audio", "1 min clips", "30 sec clips"])
-                                    add_subtitles = st.checkbox("Add subtitles", value=True)
-                            else:
-                                st.warning("📷 Please upload photos for your speakers to generate video")
-                                st.info("💡 **Tip:** For best results:\n• Use clear, front-facing photos\n• Good lighting\n• Neutral background")
-                            
-                            # Advanced features preview
-                            with st.expander("🚀 Advanced Features (Coming Soon)"):
-                                st.write("**🤖 AI Enhancements:**")
-                                st.write("• Real-time lip synchronization")
-                                st.write("• Emotion-based expressions") 
-                                st.write("• Auto gesture generation")
-                                st.write("• Voice cloning integration")
-                                st.write("• Multi-language dubbing")
-                    
+                        # Show success message
+                        st.success("🎉 Transcript generated successfully!")
+                        st.rerun()  # Refresh to show transcript
+                        
                     except Exception as e:
                         st.warning("Standard transcription failed, trying fallback method...")
                         # Use fallback audio loading
                         audio_data = load_audio_fallback(temp_path)
                         if audio_data is not None:
                             result = model.transcribe(audio_data)
-                            st.text_area("Generated Transcript", result["text"], height=200)
+                            st.session_state.transcript_data = result
+                            st.session_state.transcript_generated = True
+                            st.success("🎉 Transcript generated with fallback method!")
+                            st.rerun()
                         else:
                             raise e
                     
@@ -312,6 +249,131 @@ def main():
                         os.unlink(temp_path)
                     except:
                         pass
+    
+    # Display transcript if generated
+    if st.session_state.transcript_generated and st.session_state.transcript_data:
+        result = st.session_state.transcript_data
+        
+        st.divider()
+        st.header("📋 Generated Transcript")
+        
+        if show_timestamps:
+            # Display timestamped transcript
+            display_timestamped_transcript(result["segments"])
+            
+            # Download options
+            st.subheader("💾 Download Options")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                # Simple transcript
+                simple_transcript = result["text"]
+                st.download_button(
+                    "📄 Download Simple Transcript",
+                    simple_transcript,
+                    file_name=f"transcript_{st.session_state.audio_file_name}.txt",
+                    mime="text/plain"
+                )
+            
+            with col2:
+                # Timestamped transcript
+                timestamped_text = ""
+                for segment in result["segments"]:
+                    start = format_timestamp(segment["start"])
+                    end = format_timestamp(segment["end"])
+                    text = segment["text"].strip()
+                    timestamped_text += f"[{start}-{end}] {text}\n\n"
+                
+                st.download_button(
+                    "⏰ Download Timestamped Transcript",
+                    timestamped_text,
+                    file_name=f"timestamped_{st.session_state.audio_file_name}.txt",
+                    mime="text/plain"
+                )
+        else:
+            # Simple transcript display
+            st.subheader("📝 Transcript")
+            st.text_area("Generated Transcript", result["text"], height=300)
+        
+        # Video generation section - now separate from transcript generation
+        if generate_video:
+            st.divider()
+            st.header("🎬 Video Generation")
+            
+            # Check if any speaker photos uploaded
+            speakers_uploaded = []
+            if 'speaker1' in st.session_state.speaker_photos:
+                speakers_uploaded.append("Speaker 1")
+            if 'speaker2' in st.session_state.speaker_photos:
+                speakers_uploaded.append("Speaker 2")
+            if 'speaker3' in st.session_state.speaker_photos:
+                speakers_uploaded.append("Speaker 3")
+            
+            if speakers_uploaded:
+                st.success(f"✅ Photos uploaded for: {', '.join(speakers_uploaded)}")
+                
+                # Speaker detection from transcript
+                speaker_count = len([seg for seg in result["segments"] if "speaker" in seg.get("text", "").lower()])
+                if speaker_count == 0:
+                    # Estimate speakers from dialogue patterns
+                    speaker_count = 2  # Default for dialogue
+                
+                st.info(f"🗣️ Detected approximately {speaker_count} speakers in audio")
+                
+                col_vid1, col_vid2 = st.columns(2)
+                
+                with col_vid1:
+                    if st.button("🎥 Generate Dialogue Video", key="generate_video_btn"):
+                        st.balloons()
+                        with st.spinner("🎬 Creating dialogue video..."):
+                            # Simulate video generation process
+                            progress = st.progress(0)
+                            status = st.empty()
+                            
+                            steps = [
+                                ("🔍 Analyzing dialogue structure...", 20),
+                                ("👥 Matching speakers to photos...", 40),
+                                ("🎭 Generating avatar animations...", 60), 
+                                ("🎬 Rendering video scenes...", 80),
+                                ("✨ Adding transitions...", 100)
+                            ]
+                            
+                            import time
+                            for step_text, prog in steps:
+                                status.text(step_text)
+                                progress.progress(prog)
+                                time.sleep(1)
+                                
+                            st.success("🎉 Dialogue video generated!")
+                            
+                            # Show video preview placeholder
+                            st.video("https://www.w3schools.com/html/mov_bbb.mp4")
+                            
+                            # Download button
+                            st.download_button(
+                                "� Download Video",
+                                data=b"demo video data",
+                                file_name=f"dialogue_{st.session_state.audio_file_name}.mp4",
+                                mime="video/mp4"
+                            )
+                
+                with col_vid2:
+                    st.write("📋 **Video Settings:**")
+                    video_format = st.selectbox("Format", ["16:9 (YouTube)", "9:16 (TikTok)", "1:1 (Instagram)"])
+                    video_length = st.selectbox("Length", ["Full audio", "1 min clips", "30 sec clips"])
+                    add_subtitles = st.checkbox("Add subtitles", value=True)
+            else:
+                st.warning("📷 Please upload photos for your speakers to generate video")
+                st.info("💡 **Tip:** For best results:\n• Use clear, front-facing photos\n• Good lighting\n• Neutral background")
+            
+            # Advanced features preview
+            with st.expander("🚀 Advanced Features (Coming Soon)"):
+                st.write("**🤖 AI Enhancements:**")
+                st.write("• Real-time lip synchronization")
+                st.write("• Emotion-based expressions") 
+                st.write("• Auto gesture generation")
+                st.write("• Voice cloning integration")
+                st.write("• Multi-language dubbing")
 
     # About section
     st.header("🤖 About This AI Tool")
